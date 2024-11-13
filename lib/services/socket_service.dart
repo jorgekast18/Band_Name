@@ -16,7 +16,7 @@ class SocketService with ChangeNotifier {
 
   void _initConfig() {
     _socket = IO.io(
-        'http://192.168.1.7:3000',
+        'http://192.168.1.6:3000',
         IO.OptionBuilder()
             .setTransports(['websocket'])
             .enableAutoConnect()
@@ -24,6 +24,7 @@ class SocketService with ChangeNotifier {
             .build());
 
     _socket?.onConnect((_) {
+      print('connect flutter');
       _serverStatus = ServerStatus.Online;
       notifyListeners();
     });

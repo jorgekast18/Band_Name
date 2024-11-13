@@ -12,13 +12,21 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  List<Band> bands = [
-    Band(id: '1', name: 'Metallica', votes: 5),
-    Band(id: '2', name: 'Queen', votes: 3),
-    Band(id: '3', name: 'Los prisioneros', votes: 3),
-    Band(id: '4', name: 'La mosca', votes: 1),
-    Band(id: '5', name: 'chanchito feliz', votes: 10),
-  ];
+  List<Band> bands = [];
+
+  @override
+  void initState() {
+    final socketService = Provider.of<SocketService>(context, listen: false);
+
+    socketService.socket?.on('active-bands', _handleActivaBands);
+    super.initState();
+  }
+
+  _handleActivaBands(dynamic payload) {
+    setState(() {
+      bands = (payload as List).map((band) => Band.fromMap(band)).toList();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -55,12 +63,12 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _bandTile(Band band) {
+    final socketService = Provider.of<SocketService>(context, listen: false);
     return Dismissible(
       key: Key(band.id),
       direction: DismissDirection.startToEnd,
-      onDismissed: (DismissDirection direction) {
-        // TODO llamar el borrado en el server
-      },
+      onDismissed: (DismissDirection direction) =>
+          socketService.socket?.emit('delete-band', {"id": band.id}),
       background: Container(
           padding: const EdgeInsets.only(left: 8),
           color: Colors.red,
@@ -81,7 +89,7 @@ class _HomePageState extends State<HomePage> {
           '${band.votes}',
           style: const TextStyle(fontSize: 20),
         ),
-        onTap: () {},
+        onTap: () => socketService.socket?.emit('add-votes', {"id": band.id}),
       ),
     );
   }
@@ -91,54 +99,48 @@ class _HomePageState extends State<HomePage> {
 
     if (Platform.isAndroid) {
       return showDialog(
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            title: const Text('New Band Name'),
-            content: TextField(
-              controller: textController,
-            ),
-            actions: <Widget>[
-              MaterialButton(
-                  elevation: 5,
-                  onPressed: () => addBandToList(textController.text),
-                  child: const Text(
-                    'Add',
-                    style: TextStyle(color: Colors.blue),
-                  ))
-            ],
-          );
-        },
-      );
+          context: context,
+          builder: (_) => AlertDialog(
+                title: const Text('New Band Name'),
+                content: TextField(
+                  controller: textController,
+                ),
+                actions: <Widget>[
+                  MaterialButton(
+                      elevation: 5,
+                      onPressed: () => addBandToList(textController.text),
+                      child: const Text(
+                        'Add',
+                        style: TextStyle(color: Colors.blue),
+                      ))
+                ],
+              ));
     }
 
     showCupertinoDialog(
         context: context,
-        builder: (_) {
-          return CupertinoAlertDialog(
-            title: const Text('New Band Name'),
-            content: CupertinoTextField(
-              controller: textController,
-            ),
-            actions: <Widget>[
-              CupertinoDialogAction(
-                  isDefaultAction: true,
-                  onPressed: () => addBandToList(textController.text),
-                  child: const Text('Add')),
-              CupertinoDialogAction(
-                  isDestructiveAction: true,
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Dismiss')),
-            ],
-          );
-        });
+        builder: (_) => CupertinoAlertDialog(
+              title: const Text('New Band Name'),
+              content: CupertinoTextField(
+                controller: textController,
+              ),
+              actions: <Widget>[
+                CupertinoDialogAction(
+                    isDefaultAction: true,
+                    onPressed: () => addBandToList(textController.text),
+                    child: const Text('Add')),
+                CupertinoDialogAction(
+                    isDestructiveAction: true,
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Dismiss')),
+              ],
+            ));
   }
 
   void addBandToList(String name) {
+    final socketService = Provider.of<SocketService>(context, listen: false);
     if (name.length > 1) {
-      setState(() {
-        bands.add(Band(id: DateTime.now().toString(), name: name, votes: 0));
-      });
+      socketService.socket?.emit('add-band', {"name": name});
     }
 
     Navigator.pop(context);
