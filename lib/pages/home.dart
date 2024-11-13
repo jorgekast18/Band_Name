@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:pie_chart/pie_chart.dart';
 
 import 'package:bandname/services/socket_service.dart';
 import 'package:bandname/models/band.dart';
@@ -54,10 +55,16 @@ class _HomePageState extends State<HomePage> {
             )
           ],
         ),
-        body: ListView.builder(
-            itemCount: bands.length,
-            itemBuilder: (BuildContext context, int index) =>
-                _bandTile(bands[index])),
+        body: Column(
+          children: <Widget>[
+            _showGraph(),
+            Expanded(
+                child: ListView.builder(
+                    itemCount: bands.length,
+                    itemBuilder: (BuildContext context, int index) =>
+                        _bandTile(bands[index])))
+          ],
+        ),
         floatingActionButton: FloatingActionButton(
             elevation: 1, onPressed: addNewBand, child: const Icon(Icons.add)));
   }
@@ -144,5 +151,42 @@ class _HomePageState extends State<HomePage> {
     }
 
     Navigator.pop(context);
+  }
+
+  Widget _showGraph() {
+    Map<String, double> dataMap = {};
+    for (var band in bands) {
+      dataMap.putIfAbsent(band.name, () => band.votes.toDouble());
+    }
+
+    if (dataMap.isEmpty) {
+      return const Center(child: Text('No hay datos disponibles'));
+    }
+
+    return SizedBox(
+        width: double.infinity,
+        height: 200,
+        child: PieChart(
+          dataMap: dataMap,
+          animationDuration: const Duration(milliseconds: 800),
+          chartLegendSpacing: 32,
+          initialAngleInDegree: 0,
+          chartType: ChartType.disc,
+          legendOptions: const LegendOptions(
+            showLegendsInRow: false,
+            legendPosition: LegendPosition.right,
+            showLegends: true,
+            legendTextStyle: TextStyle(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          chartValuesOptions: const ChartValuesOptions(
+            showChartValueBackground: false,
+            showChartValues: true,
+            showChartValuesInPercentage: false,
+            showChartValuesOutside: false,
+            decimalPlaces: 0,
+          ),
+        ));
   }
 }
